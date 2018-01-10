@@ -4,7 +4,7 @@
 
 `Player` is a simple iOS video player library written in [Swift](https://developer.apple.com/swift/).
 
-[![Build Status](https://travis-ci.org/piemonte/Player.svg?branch=master)](https://travis-ci.org/piemonte/Player) [![Pod Version](https://img.shields.io/cocoapods/v/Player.svg?style=flat)](http://cocoadocs.org/docsets/Player/) [![Swift Version](https://img.shields.io/badge/language-swift%203.0-brightgreen.svg)](https://developer.apple.com/swift) [![GitHub license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://github.com/piemonte/Player/blob/master/LICENSE)
+[![Build Status](https://travis-ci.org/piemonte/Player.svg?branch=master)](https://travis-ci.org/piemonte/Player) [![Pod Version](https://img.shields.io/cocoapods/v/Player.svg?style=flat)](http://cocoadocs.org/docsets/Player/) [![Swift Version](https://img.shields.io/badge/language-swift%204.0-brightgreen.svg)](https://developer.apple.com/swift) [![GitHub license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://github.com/piemonte/Player/blob/master/LICENSE)
 
 - Looking for an obj-c video player? Check out [PBJVideoPlayer (obj-c)](https://github.com/piemonte/PBJVideoPlayer).
 - Looking for a Swift camera library? Check out [Next Level](https://github.com/NextLevel/NextLevel).
@@ -20,16 +20,16 @@
 
 `Player` is available for installation using the Cocoa dependency manager [CocoaPods](http://cocoapods.org/).  Alternatively, you can simply copy the `Player.swift` file into your Xcode project.
 
-## Xcode 8 & Swift 3
-
 ```ruby
 # CocoaPods
-swift_version = "3.0"
-pod "Player", "~> 0.5.0"
+swift_version = "4.0"
+pod "Player", "~> 0.8.0"
 
 # Carthage
-github "piemonte/Player" ~> 0.5.0
+github "piemonte/Player" ~> 0.8.0
 ```
+
+Need Swift 3? Use release `0.7.0`
 
 ## Usage
 
@@ -45,14 +45,14 @@ Allocate and add the `Player` controller to your view hierarchy.
     
  self.addChildViewController(self.player)
  self.view.addSubview(self.player.view)
- self.player.didMoveToParentViewController(self)
+ self.player.didMove(toParentViewController: self)
 ```
 
 Provide the file path to the resource you would like to play locally or stream. Ensure you're including the file extension.
 
 ``` Swift
-let videoUrl: NSURL = // file or http url
-self.player.setUrl(videoUrl)
+let videoUrl: URL = // file or http url
+self.player.url = videoUrl
 ```
 
 play/pause/chill
@@ -64,7 +64,30 @@ play/pause/chill
 Adjust the fill mode for the video, if needed.
 
 ``` Swift
- self.player.fillMode = FillMode.resizeAspectFit
+ self.player.fillMode = PlayerFillMode.resizeAspectFit.avFoundationType
+```
+
+Display video playback progress, if needed.
+
+``` Swift
+extension ViewController: PlayerPlaybackDelegate {
+
+    public func playerPlaybackWillStartFromBeginning(_ player: Player) {
+    }
+    
+    public func playerPlaybackDidEnd(_ player: Player) {
+    }
+    
+    public func playerCurrentTimeDidChange(_ player: Player) {
+        let fraction = Double(player.currentTime) / Double(player.maximumDuration)
+        self._playbackViewController?.setProgress(progress: CGFloat(fraction), animated: true)
+    }
+    
+    public func playerPlaybackWillLoop(_ player: Player) {
+        self. _playbackViewController?.reset()
+    }
+    
+}
 ```
 
 ## Documentation
