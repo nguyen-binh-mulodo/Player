@@ -133,6 +133,8 @@ open class Player: UIViewController {
 
     // configuration
     
+    open var headerFields: [String: Any]?
+    
     /// Local or remote URL for the file asset to be played.
     ///
     /// - Parameter url: URL of the asset.
@@ -284,6 +286,7 @@ open class Player: UIViewController {
     internal var _timeObserver: Any?
     
     internal var _playerView: PlayerView = PlayerView(frame: .zero)
+    internal var _seekTimeRequested: CMTime?
     
     // MARK: - object lifecycle
 
@@ -389,6 +392,8 @@ open class Player: UIViewController {
     open func seek(to time: CMTime) {
         if let playerItem = self._playerItem {
             return playerItem.seek(to: time)
+        }else{
+            _seekTimeRequested = time
         }
     }
     
@@ -402,6 +407,8 @@ open class Player: UIViewController {
             return playerItem.seek(to: time, completionHandler: { (seeked) in
                 completionHandler()
             })
+        }else{
+            _seekTimeRequested = time
         }
     }
 
@@ -450,9 +457,16 @@ extension Player {
         self.setupPlayerItem(nil)
         
         if let url = url {
-            let asset = AVURLAsset(url: url, options: .none)
+            let asset = AVURLAsset(url: url, options: options)
             self.setupAsset(asset)
         }
+    }
+    
+    fileprivate var options: [String: Any]? {
+        guard let headerFields = headerFields else {
+            return nil
+        }
+        return ["AVURLAssetHTTPHeaderFieldsKey": headerFields]
     }
 
     fileprivate func setupAsset(_ asset: AVAsset) {
@@ -499,6 +513,11 @@ extension Player {
         }
 
         self._playerItem = playerItem
+
+        if let seek = _seekTimeRequested, self._playerItem != nil{
+            _seekTimeRequested = nil
+            self.seek(to: seek)
+        }
 
         self._playerItem?.addObserver(self, forKeyPath: PlayerEmptyBufferKey, options: ([.new, .old]), context: &PlayerItemObserverContext)
         self._playerItem?.addObserver(self, forKeyPath: PlayerKeepUpKey, options: ([.new, .old]), context: &PlayerItemObserverContext)
@@ -550,13 +569,13 @@ extension Player {
     // MARK: - UIApplication
     
     internal func addApplicationObservers() {
-        NotificationCenter.default.addObserver(self, selector: #selector(handleApplicationWillResignActive(_:)), name: .UIApplicationWillResignActive, object: UIApplication.shared)
-        NotificationCenter.default.addObserver(self, selector: #selector(handleApplicationDidEnterBackground(_:)), name: .UIApplicationDidEnterBackground, object: UIApplication.shared)
-        NotificationCenter.default.addObserver(self, selector: #selector(handleApplicationWillEnterForeground(_:)), name: .UIApplicationWillEnterForeground, object: UIApplication.shared)
+//        NotificationCenter.default.addObserver(self, selector: #selector(handleApplicationWillResignActive(_:)), name: .UIApplicationWillResignActive, object: UIApplication.shared)
+//        NotificationCenter.default.addObserver(self, selector: #selector(handleApplicationDidEnterBackground(_:)), name: .UIApplicationDidEnterBackground, object: UIApplication.shared)
+//        NotificationCenter.default.addObserver(self, selector: #selector(handleApplicationWillEnterForeground(_:)), name: .UIApplicationWillEnterForeground, object: UIApplication.shared)
     }
     
     internal func removeApplicationObservers() {
-        NotificationCenter.default.removeObserver(self)
+//        NotificationCenter.default.removeObserver(self)
     }
     
     // MARK: - handlers
@@ -654,10 +673,11 @@ extension Player {
                 // PlayerKeepUpKey
                 
                 if let item = self._playerItem {
-                    self.bufferingState = .ready
-                    
-                    if item.isPlaybackLikelyToKeepUp && self.playbackState == .playing {
-                        self.playFromCurrentTime()
+                    if item.isPlaybackLikelyToKeepUp {
+                        self.bufferingState = .ready
+                        if self.playbackState == .playing{
+                            self.playFromCurrentTime()
+                        }
                     }
                 }
                 
